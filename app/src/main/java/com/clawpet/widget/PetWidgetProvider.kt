@@ -12,7 +12,11 @@ import android.widget.RemoteViews
 import com.clawpet.R
 import com.clawpet.domain.PetAction
 import com.clawpet.domain.PetRepository
+import com.clawpet.domain.PetState
 import dagger.hilt.android.EntryPointAccessors
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class PetWidgetProvider : AppWidgetProvider() {
 
@@ -25,9 +29,13 @@ class PetWidgetProvider : AppWidgetProvider() {
         private const val REQUEST_CODE = 42
     }
 
-    // Per-widget animators (keyed by widgetId)
     private val animators = HashMap<Int, PetAnimator>()
     private val renderer = PetRenderer()
+    private val scope = CoroutineScope(Dispatchers.IO)
+
+    // Cache last known pet state for synchronous rendering
+    @Volatile
+    private var cachedPetState: PetState = PetState()
 
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
@@ -38,27 +46,38 @@ class PetWidgetProvider : AppWidgetProvider() {
                 val ids = appWidgetManager.getAppWidgetIds(
                     ComponentName(context, PetWidgetProvider::class.java)
                 )
-                for (id in ids) {
-                    updateFrame(context, appWidgetManager, id)
+                if (ids.isNotEmpty()) {
+                    // Refresh cached state from DB
+                    scope.launch {
+                        val repo = getRepo(context)
+                        if (repo != null) {
+                            cachedPetState = repo.getPet()
+                        }
+                        for (id in ids) {
+                            updateFrame(context, appWidgetManager, id)
+                        }
+                    }
                 }
                 scheduleNextFrame(context)
             }
             ACTION_FEED, ACTION_PET, ACTION_PLAY -> {
-                val repo = getRepo(context) ?: return
                 val action = when (intent.action) {
                     ACTION_FEED -> PetAction.FEED
                     ACTION_PET -> PetAction.PET
                     ACTION_PLAY -> PetAction.PLAY
                     else -> return
                 }
-                repo.performAction(action)
-                // Force immediate frame update
-                val appWidgetManager = AppWidgetManager.getInstance(context)
-                val ids = appWidgetManager.getAppWidgetIds(
-                    ComponentName(context, PetWidgetProvider::class.java)
-                )
-                for (id in ids) {
-                    updateFrame(context, appWidgetManager, id)
+                scope.launch {
+                    val repo = getRepo(context) ?: return@launch
+                    cachedPetState = repo.performAction(action)
+                    // Force immediate frame update
+                    val appWidgetManager = AppWidgetManager.getInstance(context)
+                    val ids = appWidgetManager.getAppWidgetIds(
+                        ComponentName(context, PetWidgetProvider::class.java)
+                    )
+                    for (id in ids) {
+                        updateFrame(context, appWidgetManager, id)
+                    }
                 }
             }
         }
@@ -66,14 +85,22 @@ class PetWidgetProvider : AppWidgetProvider() {
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         for (id in appWidgetIds) {
-            // Initialize animator for each widget
             if (!animators.containsKey(id)) {
                 val opts = appWidgetManager.getAppWidgetOptions(id)
                 val w = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 300).dpToPx(context)
                 val h = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 300).dpToPx(context)
                 animators[id] = PetAnimator(w.toFloat(), h.toFloat())
             }
-            updateFrame(context, appWidgetManager, id)
+        }
+        // Initial load of pet state
+        scope.launch {
+            val repo = getRepo(context)
+            if (repo != null) {
+                cachedPetState = repo.getPet()
+            }
+            for (id in appWidgetIds) {
+                updateFrame(context, appWidgetManager, id)
+            }
         }
         scheduleNextFrame(context)
     }
@@ -97,10 +124,8 @@ class PetWidgetProvider : AppWidgetProvider() {
     }
 
     private fun updateFrame(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
-        val repo = getRepo(context)
-        val petState = repo?.getPet() ?: com.clawpet.domain.PetState()
+        val petState = cachedPetState
 
-        // Get or create animator
         val opts = appWidgetManager.getAppWidgetOptions(appWidgetId)
         val w = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 300).dpToPx(context)
         val h = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 300).dpToPx(context)
@@ -117,11 +142,7 @@ class PetWidgetProvider : AppWidgetProvider() {
 
         // Build RemoteViews
         val views = RemoteViews(context.packageName, R.layout.clawpet_widget)
-
-        // Set pet image
         views.setImageViewBitmap(R.id.pet_image, bitmap)
-
-        // Set stats
         views.setTextViewText(R.id.stat_hunger, "🍖${petState.hunger}%")
         views.setTextViewText(R.id.stat_happy, "😊${petState.happiness}%")
         views.setTextViewText(R.id.stat_energy, "⚡${petState.energy}%")
