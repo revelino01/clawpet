@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="8dp"
+    android:gravity="center">
+
+    <!-- Animated pet canvas rendered as bitmap -->
+    <ImageView
+        android:id="@+id/pet_image"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:scaleType="fitCenter"
+        android:contentDescription="ClawPet" />
+
+    <!-- Stats row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:paddingTop="2dp">
+
+        <TextView
+            android:id="@+id/stat_hunger"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:textSize="10sp"
+            android:textColor="#FF7043" />
+
+        <TextView
+            android:id="@+id/stat_happy"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:textSize="10sp"
+            android:textColor="#66BB6A" />
+
+        <TextView
+            android:id="@+id/stat_energy"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textSize="10sp"
+            android:layout_weight="1"
+            android:textColor="#42A5F5" />
+    </LinearLayout>
+
+    <!-- Mood + level -->
+    <TextView
+        android:id="@+id/mood_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:textSize="11sp"
+        android:textColor="#FFFFFF"
+        android:paddingTop="2dp" />
+
+    <!-- Action buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:paddingTop="4dp">
+
+        <Button
+            android:id="@+id/btn_feed"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:text="🍖 Feed"
+            android:textSize="11sp"
+            android:layout_marginEnd="4dp" />
+
+        <Button
+            android:id="@+id/btn_pet"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:text="🤗 Pet"
+            android:textSize="11sp"
+            android:layout_marginEnd="4dp" />
+
+        <Button
+            android:id="@+id/btn_play"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:text="🎮 Play"
+            android:textSize="11sp"
+            android:layout_weight="1" />
+    </LinearLayout>
+</LinearLayout>

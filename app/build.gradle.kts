@@ -67,9 +67,8 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
     debugImplementation("androidx.compose.ui:ui-tooling")
 
-    // Glance (widgets)
-    implementation("androidx.glance:glance-appwidget:1.1.0")
-    implementation("androidx.glance:glance-material3:1.1.0")
+    // Widget (traditional AppWidgetProvider, not Glance — needed for Bitmap animation)
+    // No Glance dependency — we use RemoteViews + Canvas rendering
 
     // Room
     implementation("androidx.room:room-runtime:2.6.1")
