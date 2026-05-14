@@ -5,23 +5,23 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.clawpet.domain.PetRepository
-import com.clawpet.widget.PetWidgetProvider
 import com.clawpet.widget.WidgetUpdateScheduler
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
+import com.clawpet.widget.PetWidgetProvider
 
 @HiltWorker
 class PetDecayWorker @AssistedInject constructor(
-    @Assisted context: Context,
+    @Assisted appContext: Context,
     @Assisted params: WorkerParameters,
     private val repo: PetRepository,
-) : CoroutineWorker(context, params) {
+) : CoroutineWorker(appContext, params) {
 
     override suspend fun doWork(): Result {
         // Decay pet stats based on time elapsed
-        val state = repo.tickDecay()
+        repo.tickDecay()
 
         // Trigger widget refresh so new mood/state appears
         val appWidgetManager = AppWidgetManager.getInstance(applicationContext)
