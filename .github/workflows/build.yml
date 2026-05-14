@@ -1,0 +1,112 @@
+name: Build Release APK
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Generate version from git
+        id: version
+        run: |
+          BUILD_NUMBER=$GITHUB_RUN_NUMBER
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            GIT_VERSION="${GITHUB_REF#refs/tags/v}"
+            VERSION_NAME="$GIT_VERSION"
+          else
+            GIT_VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "dev")
+            GIT_VERSION=${GIT_VERSION#v}
+            VERSION_NAME="${GIT_VERSION}.${BUILD_NUMBER}"
+          fi
+          echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+          echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION_NAME (code: $BUILD_NUMBER)"
+
+      - name: Generate Gradle wrapper
+        run: gradle wrapper --gradle-version 8.7
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build release APK
+        env:
+          VERSION_CODE: ${{ steps.version.outputs.build_number }}
+          VERSION_NAME: ${{ steps.version.outputs.version_name }}
+        run: |
+          sed -i "s/versionCode = .*/versionCode = $VERSION_CODE/" app/build.gradle.kts
+          sed -i "s/versionName = .*/versionName = \"$VERSION_NAME\"/" app/build.gradle.kts
+          ./gradlew assembleRelease
+
+      - name: Upload release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: clawpet-release-${{ steps.version.outputs.version_name }}
+          path: app/build/outputs/apk/release/*.apk
+
+      - name: Build debug APK
+        env:
+          VERSION_CODE: ${{ steps.version.outputs.build_number }}
+          VERSION_NAME: ${{ steps.version.outputs.version_name }}
+        run: |
+          sed -i "s/versionCode = .*/versionCode = $VERSION_CODE/" app/build.gradle.kts
+          sed -i "s/versionName = .*/versionName = \"$VERSION_NAME\"/" app/build.gradle.kts
+          ./gradlew assembleDebug
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: clawpet-debug-${{ steps.version.outputs.version_name }}
+          path: app/build/outputs/apk/debug/*.apk
+
+      - name: Create/update latest pre-release
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: ClawPet ${{ steps.version.outputs.version_name }} (latest)
+          body: |
+            **Build #${{ steps.version.outputs.build_number }}** from `${{ github.sha }}`
+
+            • `clawpet-release-${{ steps.version.outputs.version_name }}.apk` — signed release build
+            • `clawpet-debug-${{ steps.version.outputs.version_name }}.apk` — debug build
+          prerelease: true
+          files: |
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/apk/debug/*.apk
+
+      - name: Create tagged release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ClawPet ${{ steps.version.outputs.version_name }}
+          body: |
+            **Release ${{ steps.version.outputs.version_name }}**
+
+            • `clawpet-release-${{ steps.version.outputs.version_name }}.apk` — signed release build
+            • `clawpet-debug-${{ steps.version.outputs.version_name }}.apk` — debug build
+          prerelease: false
+          files: |
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/apk/debug/*.apk
