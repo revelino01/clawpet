@@ -1,6 +1,7 @@
 package com.clawpet.widget
 
 import android.content.Context
+import androidx.compose.ui.unit.dp
 import androidx.glance.*
 import androidx.glance.action.ActionParameters
 import androidx.glance.appwidget.*
@@ -9,8 +10,8 @@ import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.layout.*
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import androidx.glance.unit.Sp
 import com.clawpet.domain.*
-import com.clawpet.ui.MainActivity
 
 class ClawPetWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
@@ -18,40 +19,35 @@ class ClawPetWidget : GlanceAppWidget() {
         val state = repo?.getPet() ?: PetState()
 
         provideContent {
-            WidgetContent(state)
-        }
-    }
-
-    @Composable
-    private fun WidgetContent(state: PetState) {
-        Column(
-            modifier = GlanceModifier.fillMaxSize().padding(12.dp),
-            verticalAlignment = Alignment.Vertical.CenterHorizontally,
-            horizontalAlignment = Alignment.Horizontal.CenterHorizontally
-        ) {
-            Text(
-                text = "${state.mood.emoji} ${state.name}",
-                style = TextStyle(fontSize = 28.sp)
-            )
-            Spacer(modifier = GlanceModifier.height(4.dp))
-            Text(
-                text = "Lv.${state.level} • ${state.xp}/${state.xpToNext} XP",
-                style = TextStyle(fontSize = 12.sp)
-            )
-            Spacer(modifier = GlanceModifier.height(8.dp))
-            Text(text = "🍖 Hunger: ${state.hunger}%", style = TextStyle(fontSize = 14.sp))
-            Text(text = "😊 Happy: ${state.happiness}%", style = TextStyle(fontSize = 14.sp))
-            Text(text = "⚡ Energy: ${state.energy}%", style = TextStyle(fontSize = 14.sp))
-            Spacer(modifier = GlanceModifier.height(8.dp))
-            Row(
-                modifier = GlanceModifier.fillMaxWidth(),
+            Column(
+                modifier = GlanceModifier.fillMaxSize().padding(12.dp),
+                verticalAlignment = Alignment.Vertical.CenterVertically,
                 horizontalAlignment = Alignment.Horizontal.CenterHorizontally
             ) {
-                Button(text = "Feed", onClick = actionRunCallback<FeedAction>())
-                Spacer(modifier = GlanceModifier.width(8.dp))
-                Button(text = "Pet", onClick = actionRunCallback<PetActionCallback>())
-                Spacer(modifier = GlanceModifier.width(8.dp))
-                Button(text = "Play", onClick = actionRunCallback<PlayActionCallback>())
+                Text(
+                    text = "${state.mood.emoji} ${state.name}",
+                    style = TextStyle(fontSize = Sp(28))
+                )
+                Spacer(modifier = GlanceModifier.height(4.dp))
+                Text(
+                    text = "Lv.${state.level} • ${state.xp}/${state.xpToNext} XP",
+                    style = TextStyle(fontSize = Sp(12))
+                )
+                Spacer(modifier = GlanceModifier.height(8.dp))
+                Text(text = "🍖 Hunger: ${state.hunger}%", style = TextStyle(fontSize = Sp(14)))
+                Text(text = "😊 Happy: ${state.happiness}%", style = TextStyle(fontSize = Sp(14)))
+                Text(text = "⚡ Energy: ${state.energy}%", style = TextStyle(fontSize = Sp(14)))
+                Spacer(modifier = GlanceModifier.height(8.dp))
+                Row(
+                    modifier = GlanceModifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.Horizontal.CenterHorizontally
+                ) {
+                    Button(text = "Feed", onClick = actionRunCallback<FeedAction>())
+                    Spacer(modifier = GlanceModifier.width(8.dp))
+                    Button(text = "Pet", onClick = actionRunCallback<PetActionCallback>())
+                    Spacer(modifier = GlanceModifier.width(8.dp))
+                    Button(text = "Play", onClick = actionRunCallback<PlayActionCallback>())
+                }
             }
         }
     }
